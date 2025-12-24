@@ -8,12 +8,19 @@ const safeParseJson = (text: string) => {
     return JSON.parse(cleanText);
   } catch (e) {
     console.error("JSON Parsing Error:", e, "Original text:", text);
-    throw new Error("Format Error: AI returned invalid JSON. Please try again.");
+    throw new Error("AI response format error. Please try again.");
   }
 };
 
+/**
+ * Robustly gets the API key from the environment.
+ */
+const getApiKey = () => {
+  return (window as any).process?.env?.API_KEY || process.env.API_KEY;
+};
+
 const getAI = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("API_KEY_MISSING");
   }
@@ -21,7 +28,10 @@ const getAI = () => {
 };
 
 export const geminiService = {
-  // AI Teacher
+  hasKey() {
+    return !!getApiKey();
+  },
+
   async chatWithTeacher(prompt: string, history: Message[], lang: Language) {
     const ai = getAI();
     const model = 'gemini-3-flash-preview';
@@ -38,17 +48,16 @@ export const geminiService = {
         { role: 'user', parts: [{ text: prompt }] }
       ],
       config: {
-        systemInstruction: `You are "EARTH GURU", the lead AI educator for SEARCH EARTH. 
+        systemInstruction: `You are "EARTH GURU", a world-class AI teacher for SEARCH EARTH edtech. 
         Focus: Indian Competitive Exams (UPSC, SSC, Railway) and K-12. 
         Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.
-        Response Style: Concise, point-wise, encouraging.`,
+        Always encourage students. Use simple but effective terminology.`,
       },
     });
 
     return response.text;
   },
 
-  // Photo Question Solver
   async solvePhotoQuestion(base64Image: string, lang: Language) {
     const ai = getAI();
     const model = 'gemini-3-flash-preview';
@@ -57,20 +66,19 @@ export const geminiService = {
       contents: {
         parts: [
           { inlineData: { data: base64Image, mimeType: 'image/jpeg' } },
-          { text: `Strictly analyze the educational question in this image. Solve it step-by-step. Use ${lang === Language.HINDI ? 'Hindi' : 'English'}.` }
+          { text: `Identify and solve the educational question in this image step-by-step. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.` }
         ]
       },
     });
     return response.text;
   },
 
-  // Quiz Generator
   async generateQuiz(topic: string, count: number = 5, lang: Language) {
     const ai = getAI();
     const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
-      contents: `Generate a ${count} question quiz about "${topic}" for competitive exams. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
+      contents: `Generate a ${count} question MCQ quiz about "${topic}". Output ONLY JSON array. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -91,13 +99,12 @@ export const geminiService = {
     return safeParseJson(response.text || '[]');
   },
 
-  // Study Planner
   async generateStudyPlan(exam: string, days: number, lang: Language) {
     const ai = getAI();
     const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
-      contents: `Create a ${days}-day rigorous study plan for ${exam}. Break it down into specific hourly slots. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
+      contents: `Create a ${days}-day study plan for ${exam}. Break it into time slots. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -129,21 +136,5 @@ export const geminiService = {
       }
     });
     return safeParseJson(response.text || '{}');
-  },
-
-  // Current Affairs with Search
-  async getDailyCurrentAffairs(lang: Language) {
-    const ai = getAI();
-    const model = 'gemini-3-flash-preview';
-    const today = new Date().toDateString();
-    const response = await ai.models.generateContent({
-      model,
-      contents: `List the top 5 most critical current affairs for today (${today}) relevant to Indian government exams. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
-      config: { tools: [{ googleSearch: {} }] },
-    });
-
-    const text = response.text || "";
-    // Simplified parsing
-    return [{ title: "Today's Headlines", summary: text, category: "National", date: today }];
   }
 };
