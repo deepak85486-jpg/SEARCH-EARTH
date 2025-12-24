@@ -11,7 +11,7 @@ const HomeScreen: React.FC<{ setScreen: (s: AppScreen) => void; onSubjectSelect:
       <div className="relative z-10">
         <span className="bg-blue-400/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 inline-block">Pro Version</span>
         <h2 className="text-2xl font-black mb-1 leading-tight">
-          {lang === Language.HINDI ? 'सर्च अर्थ: आपकी सफलता का साथी' : 'Search Earth: Your Success Partner'}
+          {lang === Language.HINDI ? 'सर्च अर्थ: सफलता का साथी' : 'Search Earth: Success Partner'}
         </h2>
         <p className="text-blue-100 text-xs opacity-80 mb-4">
           {lang === Language.HINDI ? 'AI के साथ स्मार्ट तरीके से पढ़ें' : 'Study smarter with AI assistance'}
@@ -28,8 +28,8 @@ const HomeScreen: React.FC<{ setScreen: (s: AppScreen) => void; onSubjectSelect:
     </div>
 
     <div className="grid grid-cols-2 gap-4">
-      <div onClick={() => setScreen(AppScreen.PHOTO_SEARCH)} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 cursor-pointer hover:shadow-md transition group">
-        <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-2xl group-active:scale-90 transition">
+      <div onClick={() => setScreen(AppScreen.PHOTO_SEARCH)} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 cursor-pointer hover:shadow-md transition active:scale-95">
+        <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-2xl">
           <i className="fa-solid fa-camera-retro"></i>
         </div>
         <div className="text-center">
@@ -37,8 +37,8 @@ const HomeScreen: React.FC<{ setScreen: (s: AppScreen) => void; onSubjectSelect:
           <p className="text-[10px] text-gray-400">Instant AI solutions</p>
         </div>
       </div>
-      <div onClick={() => setScreen(AppScreen.AI_TEACHER)} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 cursor-pointer hover:shadow-md transition group">
-        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl group-active:scale-90 transition">
+      <div onClick={() => setScreen(AppScreen.AI_TEACHER)} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 cursor-pointer hover:shadow-md transition active:scale-95">
+        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl">
           <i className="fa-solid fa-brain"></i>
         </div>
         <div className="text-center">
@@ -48,10 +48,9 @@ const HomeScreen: React.FC<{ setScreen: (s: AppScreen) => void; onSubjectSelect:
       </div>
     </div>
 
-    {/* Current Affairs Highlight */}
     <div 
       onClick={() => setScreen(AppScreen.CURRENT_AFFAIRS)}
-      className="bg-orange-50 border border-orange-100 p-4 rounded-2xl cursor-pointer hover:bg-orange-100 transition flex items-center justify-between"
+      className="bg-orange-50 border border-orange-100 p-4 rounded-2xl cursor-pointer hover:bg-orange-100 transition flex items-center justify-between active:scale-[0.98]"
     >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-orange-500 text-white rounded-xl flex items-center justify-center shadow-sm">
@@ -61,7 +60,7 @@ const HomeScreen: React.FC<{ setScreen: (s: AppScreen) => void; onSubjectSelect:
           <h4 className="font-bold text-orange-900 text-sm">
             {lang === Language.HINDI ? 'डेली करंट अफेयर्स' : 'Daily Current Affairs'}
           </h4>
-          <p className="text-[10px] text-orange-700 font-medium">
+          <p className="text-[10px] text-orange-700 font-medium leading-none mt-1">
             {lang === Language.HINDI ? 'आज की ताज़ा खबरें और महत्वपूर्ण तथ्य' : 'Latest updates for competitive exams'}
           </p>
         </div>
@@ -78,7 +77,7 @@ const HomeScreen: React.FC<{ setScreen: (s: AppScreen) => void; onSubjectSelect:
           <div 
             key={sub.id} 
             onClick={() => onSubjectSelect(sub)}
-            className="bg-white p-3 rounded-2xl shadow-xs border border-gray-50 flex flex-col items-center gap-2 hover:border-blue-200 transition cursor-pointer active:bg-blue-50"
+            className="bg-white p-3 rounded-2xl shadow-xs border border-gray-50 flex flex-col items-center gap-2 hover:border-blue-200 transition cursor-pointer active:bg-blue-50 active:scale-95"
           >
             <div className={`w-12 h-12 ${sub.color} text-white rounded-xl flex items-center justify-center text-xl shadow-inner`}>
               <i className={`fa-solid ${sub.icon}`}></i>
@@ -93,104 +92,90 @@ const HomeScreen: React.FC<{ setScreen: (s: AppScreen) => void; onSubjectSelect:
 
 const CurrentAffairsScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   const [data, setData] = useState<CurrentAffair[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasKey, setHasKey] = useState<boolean | null>(null);
+  const [sources, setSources] = useState<{ title: string; uri: string }[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const checkKeyAndFetch = async () => {
-      // @ts-ignore
-      const selected = await window.aistudio.hasSelectedApiKey();
-      setHasKey(selected);
-      if (selected) {
-        fetchData();
-      }
-    };
-    checkKeyAndFetch();
-  }, []);
+    fetchData();
+  }, [lang]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const res = await geminiService.getDailyCurrentAffairs(lang);
-      setData(res);
-    } catch (e) {
+      setData(res.news);
+      setSources(res.sources);
+    } catch (e: any) {
       console.error(e);
+      // Fallback message if something fails
+      alert(lang === Language.HINDI ? "डेटा लोड करने में विफल।" : "Failed to load data.");
     } finally {
       setLoading(false);
     }
   };
 
-  const openKeySelector = async () => {
-    // @ts-ignore
-    await window.aistudio.openSelectKey();
-    setHasKey(true);
-    fetchData();
-  };
-
-  if (hasKey === false) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-        <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-3xl shadow-sm">
-          <i className="fa-solid fa-key"></i>
-        </div>
-        <h3 className="text-xl font-bold text-gray-800">{lang === Language.HINDI ? 'API की आवश्यक है' : 'API Key Required'}</h3>
-        <p className="text-gray-500 text-sm">
-          {lang === Language.HINDI 
-            ? 'ताज़ा करंट अफेयर्स के लिए "Search" टूल का उपयोग होता है, जिसके लिए एक Paid API की की आवश्यकता है।' 
-            : 'Latest Current Affairs uses real-time search which requires a Paid API Key selection.'}
-        </p>
-        <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-blue-600 text-xs underline font-medium">Billing Documentation</a>
-        <button 
-          onClick={openKeySelector}
-          className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg w-full"
-        >
-          {lang === Language.HINDI ? 'API की चुनें' : 'Select API Key'}
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      <div className="bg-orange-500 p-6 rounded-3xl text-white shadow-lg flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-black">{lang === Language.HINDI ? 'ताज़ा खबरें' : 'Today\'s Headlines'}</h2>
-          <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{new Date().toLocaleDateString('en-GB')}</p>
+      <div className="bg-orange-500 p-6 rounded-3xl text-white shadow-xl flex items-center justify-between relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-2xl font-black leading-none">{lang === Language.HINDI ? 'आज की ताज़ा खबरें' : 'Today\'s Headlines'}</h2>
+          <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-2">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
         </div>
-        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
+        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl relative z-10 backdrop-blur-sm">
           <i className="fa-solid fa-newspaper"></i>
         </div>
+        <i className="fa-solid fa-earth-asia absolute -right-4 -bottom-4 text-7xl opacity-10"></i>
       </div>
 
       {loading ? (
         <div className="space-y-4">
           {[1,2,3,4,5].map(i => (
-            <div key={i} className="bg-white p-4 rounded-2xl border animate-pulse space-y-3">
-              <div className="h-4 bg-gray-100 rounded w-1/4"></div>
-              <div className="h-5 bg-gray-100 rounded"></div>
-              <div className="h-3 bg-gray-100 rounded w-5/6"></div>
+            <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 animate-pulse space-y-3">
+              <div className="h-4 bg-gray-50 rounded w-1/4"></div>
+              <div className="h-6 bg-gray-50 rounded"></div>
+              <div className="h-3 bg-gray-50 rounded w-5/6"></div>
             </div>
           ))}
         </div>
-      ) : data.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-           <i className="fa-solid fa-face-frown text-4xl mb-2"></i>
-           <p>{lang === Language.HINDI ? 'कोई डेटा नहीं मिला।' : 'No data found.'}</p>
-        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+          {data.length === 0 && !loading && (
+            <div className="text-center py-10 bg-white rounded-3xl border border-dashed text-gray-400">
+               <i className="fa-solid fa-face-frown text-3xl mb-2"></i>
+               <p>{lang === Language.HINDI ? "कोई डेटा नहीं मिला।" : "No data found."}</p>
+            </div>
+          )}
           {data.map((item, idx) => (
-            <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-orange-200 transition">
-              <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full mb-2 inline-block">
+            <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-orange-200 transition-all hover:shadow-md">
+              <span className="text-[9px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full mb-2 inline-block">
                 {item.category}
               </span>
               <h3 className="font-bold text-gray-800 text-base leading-tight mb-2">{item.title}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{item.summary}</p>
+              <p className="text-xs text-gray-500 leading-relaxed font-medium">{item.summary}</p>
             </div>
           ))}
+
+          {sources.length > 0 && (
+            <div className="bg-gray-100 p-5 rounded-2xl space-y-2 mt-6">
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b pb-2 mb-3">Sources & References</h4>
+              {sources.map((src, i) => (
+                <a 
+                  key={i} 
+                  href={src.uri} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block text-blue-600 text-xs font-bold hover:underline truncate"
+                >
+                  <i className="fa-solid fa-link mr-2"></i>
+                  {src.title || src.uri}
+                </a>
+              ))}
+            </div>
+          )}
+
           <button 
             onClick={fetchData}
-            className="w-full py-4 text-orange-600 font-bold text-sm bg-orange-50 rounded-2xl border border-orange-100 flex items-center justify-center gap-2"
+            className="w-full py-4 text-orange-600 font-bold text-sm bg-orange-50 rounded-2xl border border-orange-100 flex items-center justify-center gap-2 active:bg-orange-100 transition shadow-inner mt-4"
           >
             <i className="fa-solid fa-arrows-rotate"></i>
             {lang === Language.HINDI ? 'रिफ्रेश करें' : 'Refresh News'}
@@ -225,46 +210,47 @@ const SubjectDetailsScreen: React.FC<{ subject: Subject; lang: Language; setScre
 
   return (
     <div className="space-y-4">
-      <div className={`${subject.color} p-6 rounded-3xl text-white shadow-lg flex items-center gap-4`}>
-        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl">
+      <div className={`${subject.color} p-6 rounded-3xl text-white shadow-lg flex items-center gap-4 relative overflow-hidden`}>
+        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-lg relative z-10">
           <i className={`fa-solid ${subject.icon}`}></i>
         </div>
-        <div>
+        <div className="relative z-10">
           <h2 className="text-2xl font-black">{lang === Language.HINDI ? subject.name.hi : subject.name.en}</h2>
-          <p className="text-white/80 text-xs">{lang === Language.HINDI ? 'संपूर्ण तैयारी' : 'Complete Preparation'}</p>
+          <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">{lang === Language.HINDI ? 'संपूर्ण तैयारी' : 'Complete Preparation'}</p>
         </div>
+        <i className={`fa-solid ${subject.icon} absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12`}></i>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <button 
           onClick={() => { setTopic(lang === Language.HINDI ? subject.name.hi : subject.name.en); setScreen(AppScreen.QUIZ); }}
-          className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-center gap-2 font-bold text-sm shadow-sm active:scale-95 transition"
+          className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-center gap-2 font-black text-xs shadow-sm active:scale-95 transition"
         >
           <i className="fa-solid fa-list-check text-blue-600"></i>
           {lang === Language.HINDI ? 'क्विज़ लें' : 'Take Quiz'}
         </button>
         <button 
           onClick={() => setScreen(AppScreen.AI_TEACHER)}
-          className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-center gap-2 font-bold text-sm shadow-sm active:scale-95 transition"
+          className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-center gap-2 font-black text-xs shadow-sm active:scale-95 transition"
         >
           <i className="fa-solid fa-comments text-emerald-600"></i>
           {lang === Language.HINDI ? 'डाउट पूछें' : 'Ask Doubts'}
         </button>
       </div>
 
-      <div className="bg-white p-5 rounded-2xl border shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+      <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-3">
           <i className="fa-solid fa-book-open text-blue-500"></i>
           {lang === Language.HINDI ? 'विषय का अवलोकन' : 'Subject Overview'}
         </h3>
         {loading ? (
           <div className="space-y-3">
-            <div className="h-4 bg-gray-100 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-100 rounded animate-pulse w-3/4"></div>
-            <div className="h-4 bg-gray-100 rounded animate-pulse w-5/6"></div>
+            <div className="h-4 bg-gray-50 rounded animate-pulse"></div>
+            <div className="h-4 bg-gray-50 rounded animate-pulse w-3/4"></div>
+            <div className="h-4 bg-gray-50 rounded animate-pulse w-5/6"></div>
           </div>
         ) : (
-          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none">
+          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none prose-headings:text-gray-800 prose-headings:font-bold">
             {content}
           </div>
         )}
@@ -311,7 +297,7 @@ const AITeacherScreen: React.FC<{ lang: Language }> = ({ lang }) => {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] p-4 rounded-2xl text-sm shadow-sm leading-relaxed ${
-              m.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 border rounded-tl-none'
+              m.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 border rounded-tl-none border-gray-100'
             }`}>
               {m.content}
             </div>
@@ -327,8 +313,8 @@ const AITeacherScreen: React.FC<{ lang: Language }> = ({ lang }) => {
           </div>
         )}
       </div>
-      <div className="sticky bottom-0 bg-gray-50 pt-2">
-        <div className="bg-white p-2 rounded-2xl border flex gap-2 shadow-md focus-within:border-blue-500 transition-colors">
+      <div className="sticky bottom-0 bg-gray-50 pt-2 z-10">
+        <div className="bg-white p-2 rounded-2xl border flex gap-2 shadow-xl focus-within:border-blue-500 transition-colors">
           <input 
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -339,7 +325,7 @@ const AITeacherScreen: React.FC<{ lang: Language }> = ({ lang }) => {
           <button 
             onClick={handleSend}
             disabled={loading}
-            className="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center disabled:opacity-50 transition-transform active:scale-90"
+            className="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center disabled:opacity-50 transition-all active:scale-90 shadow-lg shadow-blue-200"
           >
             <i className="fa-solid fa-paper-plane"></i>
           </button>
@@ -372,62 +358,69 @@ const StudyPlannerScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   return (
     <div className="space-y-4">
       {!plan ? (
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mx-auto">
+        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl space-y-6">
+          <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-inner">
             <i className="fa-solid fa-calendar-alt"></i>
           </div>
-          <h3 className="text-xl font-bold text-center">{lang === Language.HINDI ? 'स्मार्ट स्टडी प्लान' : 'Smart Study Plan'}</h3>
-          <div className="space-y-3">
-            <label className="text-sm font-semibold text-gray-600">{lang === Language.HINDI ? 'परीक्षा चुनें' : 'Select Exam'}</label>
-            <select 
-              value={exam} 
-              onChange={e => setExam(e.target.value)}
-              className="w-full p-3 border rounded-xl outline-none"
-            >
-              <option value="">-- {lang === Language.HINDI ? 'चुनें' : 'Select'} --</option>
-              {EXAMS.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
-            </select>
+          <div className="text-center">
+            <h3 className="text-2xl font-black text-gray-800">{lang === Language.HINDI ? 'स्मार्ट स्टडी प्लान' : 'Smart Study Plan'}</h3>
+            <p className="text-gray-400 text-xs mt-1">{lang === Language.HINDI ? 'AI द्वारा तैयार किया गया शेड्यूल' : 'AI-generated personalized schedule'}</p>
           </div>
-          <div className="space-y-3">
-            <label className="text-sm font-semibold text-gray-600">{lang === Language.HINDI ? 'दिनों की संख्या' : 'Number of Days'}</label>
-            <input 
-              type="number" 
-              value={days} 
-              onChange={e => setDays(e.target.value)}
-              className="w-full p-3 border rounded-xl outline-none"
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">{lang === Language.HINDI ? 'परीक्षा चुनें' : 'Select Exam'}</label>
+              <select 
+                value={exam} 
+                onChange={e => setExam(e.target.value)}
+                className="w-full p-4 border border-gray-100 rounded-2xl outline-none focus:border-blue-500 bg-gray-50 text-sm font-bold transition"
+              >
+                <option value="">-- {lang === Language.HINDI ? 'चुनें' : 'Select'} --</option>
+                {EXAMS.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">{lang === Language.HINDI ? 'दिनों की संख्या' : 'Number of Days'}</label>
+              <input 
+                type="number" 
+                value={days} 
+                onChange={e => setDays(e.target.value)}
+                className="w-full p-4 border border-gray-100 rounded-2xl outline-none focus:border-blue-500 bg-gray-50 text-sm font-bold transition"
+              />
+            </div>
           </div>
           <button 
             onClick={generatePlan}
             disabled={loading || !exam}
-            className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-2xl shadow-blue-200 flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95 transition"
           >
             {loading ? <i className="fa-solid fa-spinner animate-spin"></i> : <i className="fa-solid fa-sparkles"></i>}
             {lang === Language.HINDI ? 'प्लान बनाएं' : 'Create My Plan'}
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="bg-blue-600 text-white p-4 rounded-2xl shadow-md flex justify-between items-center sticky top-0 z-10">
+        <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
+          <div className="bg-blue-600 text-white p-5 rounded-3xl shadow-xl flex justify-between items-center sticky top-0 z-20">
             <div>
-              <h3 className="font-bold">{plan.exam}</h3>
-              <p className="text-xs opacity-80">{plan.duration}</p>
+              <h3 className="font-black text-lg leading-tight">{plan.exam}</h3>
+              <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">{plan.duration}</p>
             </div>
-            <button onClick={() => setPlan(null)} className="text-white/80 bg-white/20 p-2 rounded-full"><i className="fa-solid fa-rotate-left"></i></button>
+            <button onClick={() => setPlan(null)} className="text-blue-600 bg-white w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition">
+              <i className="fa-solid fa-rotate-left"></i>
+            </button>
           </div>
           {plan.schedule.map((day: any, i: number) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
-                 <h4 className="font-black text-gray-700 text-sm uppercase tracking-widest">{day.day}</h4>
-                 <i className="fa-solid fa-calendar-day text-blue-500"></i>
+            <div key={i} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-gray-50/80 px-5 py-3 border-b border-gray-100 flex justify-between items-center">
+                 <h4 className="font-black text-gray-700 text-[10px] uppercase tracking-[0.2em]">{day.day}</h4>
+                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
               </div>
               <div className="p-0">
                 {day.slots.map((slot: any, j: number) => (
-                  <div key={j} className="flex border-b last:border-b-0 group">
-                    <div className="w-32 bg-blue-50/50 p-4 flex flex-col items-center justify-center border-r text-[10px] font-black text-blue-700 text-center uppercase tracking-tight">
+                  <div key={j} className="flex border-b last:border-b-0 group hover:bg-gray-50 transition-colors">
+                    <div className="w-28 bg-blue-50/30 p-4 flex flex-col items-center justify-center border-r border-gray-100 text-[9px] font-black text-blue-800 text-center uppercase tracking-tight">
                        {slot.time}
                     </div>
-                    <div className="flex-1 p-4 text-sm text-gray-700 font-medium group-hover:bg-blue-50/20 transition-colors">
+                    <div className="flex-1 p-4 text-xs text-gray-700 font-bold leading-relaxed">
                        {slot.activity}
                     </div>
                   </div>
@@ -476,41 +469,50 @@ const PhotoSearchScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   return (
     <div className="space-y-4 h-full flex flex-col">
       {!image ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-blue-50 rounded-3xl border-2 border-dashed border-blue-200 text-center">
-          <div className="w-20 h-20 bg-blue-600 text-white rounded-full flex items-center justify-center text-3xl mb-4 shadow-xl">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-blue-50/50 rounded-[2.5rem] border-2 border-dashed border-blue-200 text-center space-y-6">
+          <div className="w-24 h-24 bg-blue-600 text-white rounded-[2rem] flex items-center justify-center text-4xl shadow-2xl shadow-blue-300 relative">
             <i className="fa-solid fa-camera"></i>
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white animate-bounce">AI</div>
           </div>
-          <h3 className="text-xl font-bold text-blue-900 mb-2">{lang === Language.HINDI ? 'सवाल की फोटो लें' : 'Snap your Question'}</h3>
-          <p className="text-blue-600 text-sm mb-6">{lang === Language.HINDI ? 'गणित, विज्ञान या किसी भी विषय के सवालों का तुरंत हल पाएं' : 'Get instant solutions for Math, Science & more'}</p>
-          <label className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg cursor-pointer hover:bg-blue-700 transition active:scale-95">
+          <div>
+            <h3 className="text-2xl font-black text-blue-900 mb-2">{lang === Language.HINDI ? 'सवाल की फोटो लें' : 'Snap your Question'}</h3>
+            <p className="text-blue-700 text-xs font-medium px-4 opacity-70 leading-relaxed">{lang === Language.HINDI ? 'गणित, विज्ञान या किसी भी विषय के सवालों का तुरंत हल पाएं' : 'Get instant solutions for Math, Science & more subjects'}</p>
+          </div>
+          <label className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl cursor-pointer hover:bg-blue-700 transition active:scale-95 flex items-center gap-3">
+            <i className="fa-solid fa-cloud-arrow-up"></i>
             {lang === Language.HINDI ? 'फोटो अपलोड करें' : 'Upload Image'}
             <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
           </label>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
-          <div className="relative rounded-2xl overflow-hidden border shadow-sm shrink-0">
-            <img src={image} className="w-full h-48 object-cover" />
-            <button onClick={() => {setImage(null); setResult(null);}} className="absolute top-2 right-2 bg-black/50 text-white w-8 h-8 rounded-full">
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1 animate-in fade-in duration-300">
+          <div className="relative rounded-3xl overflow-hidden border border-gray-100 shadow-lg shrink-0 h-56">
+            <img src={image} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+            <button onClick={() => {setImage(null); setResult(null);}} className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white w-10 h-10 rounded-xl flex items-center justify-center border border-white/30 active:scale-90 transition">
               <i className="fa-solid fa-times"></i>
             </button>
           </div>
-          <div className="flex-1 bg-white p-4 rounded-2xl border shadow-sm">
-            <h4 className="font-bold text-blue-800 mb-2 border-b pb-2 flex items-center gap-2">
+          <div className="flex-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative">
+            <h4 className="font-black text-blue-800 text-xs uppercase tracking-[0.2em] mb-4 border-b pb-3 flex items-center gap-2">
               <i className="fa-solid fa-wand-magic-sparkles"></i>
               {lang === Language.HINDI ? 'AI द्वारा हल' : 'AI Solution'}
             </h4>
             {loading ? (
-              <div className="space-y-3 py-4">
-                <div className="h-4 bg-gray-100 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-100 rounded animate-pulse w-3/4"></div>
-                <div className="h-4 bg-gray-100 rounded animate-pulse w-5/6"></div>
+              <div className="space-y-4 py-4">
+                <div className="h-4 bg-gray-50 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-50 rounded animate-pulse w-3/4"></div>
+                <div className="h-4 bg-gray-50 rounded animate-pulse w-5/6"></div>
+                <div className="h-4 bg-gray-50 rounded animate-pulse w-4/6"></div>
               </div>
             ) : (
-              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-medium prose prose-sm max-w-none prose-strong:text-blue-800">
                 {result}
               </div>
             )}
+            <div className="absolute -bottom-2 -right-2 opacity-5 text-8xl">
+               <i className="fa-solid fa-robot"></i>
+            </div>
           </div>
         </div>
       )}
@@ -588,63 +590,75 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
   return (
     <div className="h-full flex flex-col gap-4">
       {quiz.length === 0 ? (
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-          <h3 className="text-xl font-bold text-gray-800">{lang === Language.HINDI ? 'नया क्विज़ (20 सवाल)' : 'New Quiz (20 Questions)'}</h3>
-          <p className="text-gray-500 text-sm">{lang === Language.HINDI ? 'प्रत्येक सवाल के लिए 20 सेकंड मिलेंगे।' : 'You will get 20 seconds for each question.'}</p>
+        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl space-y-6 text-center">
+          <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-[2rem] flex items-center justify-center text-4xl mx-auto shadow-inner border border-blue-50">
+            <i className="fa-solid fa-bolt"></i>
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-gray-800">{lang === Language.HINDI ? 'नया क्विज़ (20 सवाल)' : 'New Quiz (20 Questions)'}</h3>
+            <p className="text-gray-400 text-xs mt-2 px-8 font-medium">{lang === Language.HINDI ? 'प्रत्येक सवाल के लिए 20 सेकंड मिलेंगे। क्या आप तैयार हैं?' : 'Each question has a 20-second timer. Are you ready?'}</p>
+          </div>
           <input 
             value={topic}
             onChange={e => setTopic(e.target.value)}
-            className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 transition"
+            className="w-full p-4 border border-gray-100 rounded-2xl outline-none focus:border-blue-500 bg-gray-50 text-sm font-bold transition shadow-inner"
             placeholder={lang === Language.HINDI ? 'विषय लिखें (उदा: भारत का भूगोल)...' : 'Type topic...'}
           />
           <button 
             onClick={startQuiz}
             disabled={loading || !topic}
-            className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 transition disabled:opacity-50"
           >
-            {loading ? <i className="fa-solid fa-spinner animate-spin"></i> : <i className="fa-solid fa-bolt"></i>}
+            {loading ? <i className="fa-solid fa-spinner animate-spin"></i> : <i className="fa-solid fa-play"></i>}
             {lang === Language.HINDI ? 'क्विज़ शुरू करें' : 'Start Quiz'}
           </button>
         </div>
       ) : showResult ? (
-        <div className="bg-white p-8 rounded-3xl border shadow-lg text-center space-y-4 animate-in zoom-in-95 duration-300">
-          <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-4xl mx-auto border-4 border-blue-50">
+        <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-2xl text-center space-y-6 animate-in zoom-in duration-500">
+          <div className="w-28 h-28 bg-gradient-to-tr from-yellow-400 to-orange-500 text-white rounded-[2.5rem] flex items-center justify-center text-5xl mx-auto shadow-xl rotate-6">
             <i className="fa-solid fa-trophy"></i>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">{lang === Language.HINDI ? 'परिणाम' : 'Result'}</h2>
-          <p className="text-4xl font-black text-blue-600">{score} / {quiz.length}</p>
-          <p className="text-gray-500 font-medium">{score > 15 ? 'Excellent!' : 'Good Effort! Keep practicing.'}</p>
-          <button onClick={() => setQuiz([])} className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold active:scale-95 transition">
-            {lang === Language.HINDI ? 'वापस जाएं' : 'Go Back'}
+          <div>
+            <h2 className="text-3xl font-black text-gray-800">{lang === Language.HINDI ? 'आपका परिणाम' : 'Final Result'}</h2>
+            <p className="text-5xl font-black text-blue-600 mt-2">{score} <span className="text-gray-300 text-2xl font-bold">/ {quiz.length}</span></p>
+          </div>
+          <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+            <p className="text-sm font-bold text-blue-800">{score > 15 ? 'Incredible! You are a genius!' : 'Great effort! Practice more to master it.'}</p>
+          </div>
+          <button onClick={() => setQuiz([])} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition">
+            {lang === Language.HINDI ? 'दोबारा कोशिश करें' : 'Try Again'}
           </button>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col gap-4">
-          <div className="flex justify-between items-center px-1">
+        <div className="flex-1 flex flex-col gap-4 animate-in fade-in duration-300">
+          <div className="flex justify-between items-center px-2">
             <div className="flex flex-col">
-               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Question {currentIndex + 1} of {quiz.length}</span>
-               <div className="h-1.5 w-32 bg-gray-100 rounded-full overflow-hidden mt-1">
-                 <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${((currentIndex + 1) / quiz.length) * 100}%` }}></div>
+               <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Question {currentIndex + 1} of {quiz.length}</span>
+               <div className="h-2 w-40 bg-gray-100 rounded-full overflow-hidden mt-1.5 shadow-inner">
+                 <div className="h-full bg-blue-600 transition-all duration-300 rounded-full" style={{ width: `${((currentIndex + 1) / quiz.length) * 100}%` }}></div>
                </div>
             </div>
-            <div className={`w-14 h-14 rounded-full border-4 flex flex-col items-center justify-center font-bold text-sm transition-colors ${timeLeft < 5 ? 'border-rose-500 text-rose-500 animate-pulse' : 'border-blue-600 text-blue-600'}`}>
-               <span className="text-[10px] leading-none uppercase">Sec</span>
-               <span className="text-lg leading-none">{timeLeft}</span>
+            <div className={`w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center font-black text-sm transition-all shadow-sm ${timeLeft < 5 ? 'border-rose-500 text-rose-500 bg-rose-50 animate-pulse scale-110' : 'border-blue-600 text-blue-600 bg-blue-50'}`}>
+               <span className="text-[9px] leading-none uppercase tracking-tighter">Sec</span>
+               <span className="text-xl leading-none">{timeLeft}</span>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl border shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-6 leading-relaxed">{quiz[currentIndex].question}</h3>
-            <div className="space-y-3">
+          <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-xl relative overflow-hidden flex-1 flex flex-col">
+            <h3 className="text-lg font-black text-gray-800 mb-8 leading-relaxed relative z-10">{quiz[currentIndex].question}</h3>
+            <div className="space-y-3 relative z-10">
               {quiz[currentIndex].options.map((opt: string, i: number) => (
                 <button 
                   key={i} 
                   onClick={() => handleNextQuestion(i === quiz[currentIndex].correctAnswer)}
-                  className="w-full text-left p-4 rounded-xl border border-gray-100 bg-gray-50 hover:border-blue-500 hover:bg-blue-50 transition font-medium text-gray-700 text-sm active:scale-95"
+                  className="w-full text-left p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:border-blue-500 hover:bg-blue-50 transition-all font-bold text-gray-700 text-sm active:scale-[0.98] group flex items-center gap-3 shadow-sm"
                 >
-                  <span className="inline-block w-6 h-6 bg-white border rounded-full text-center text-xs font-bold leading-5 mr-3 text-blue-600">{String.fromCharCode(65 + i)}</span>
-                  {opt}
+                  <span className="w-8 h-8 bg-white border border-gray-100 rounded-xl text-center text-xs font-black leading-8 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">{String.fromCharCode(65 + i)}</span>
+                  <span className="flex-1">{opt}</span>
                 </button>
               ))}
+            </div>
+            <div className="absolute -bottom-6 -left-6 text-9xl opacity-[0.03] rotate-12">
+               <i className="fa-solid fa-clipboard-question"></i>
             </div>
           </div>
         </div>
@@ -703,22 +717,35 @@ const App: React.FC = () => {
         ) : <HomeScreen setScreen={setActiveScreen} onSubjectSelect={handleSubjectSelect} lang={lang} />;
       case AppScreen.PROFILE: 
         return (
-          <div className="space-y-4">
-             <div className="bg-white p-8 rounded-3xl border shadow-sm text-center">
-               <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full mx-auto mb-4 p-1 shadow-lg">
-                 <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh" className="w-full h-full rounded-full bg-white" />
+          <div className="space-y-6">
+             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-xl text-center relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-blue-600 to-indigo-700"></div>
+               <div className="relative z-10">
+                 <div className="w-28 h-28 bg-white rounded-[2.5rem] mx-auto mb-4 p-1.5 shadow-2xl">
+                   <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh" className="w-full h-full rounded-[2.2rem] bg-gray-50" />
+                 </div>
+                 <h3 className="text-2xl font-black text-gray-800">Rajesh Kumar</h3>
+                 <p className="text-blue-500 text-xs font-bold uppercase tracking-widest mt-1">UPSC Aspirant | Bihar</p>
                </div>
-               <h3 className="text-xl font-bold">Rajesh Kumar</h3>
-               <p className="text-gray-400 text-xs">UPSC Aspirant | Bihar</p>
              </div>
-             <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-               <button onClick={() => setLang(l => l === Language.HINDI ? Language.ENGLISH : Language.HINDI)} className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition border-b">
-                 <div className="flex items-center gap-3">
-                   <i className="fa-solid fa-language text-blue-600 w-5"></i>
-                   <span className="font-semibold text-sm">{lang === Language.HINDI ? 'भाषा (Hindi)' : 'Language (English)'}</span>
+             <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+               <button onClick={() => setLang(l => l === Language.HINDI ? Language.ENGLISH : Language.HINDI)} className="w-full p-5 flex justify-between items-center hover:bg-gray-50 transition border-b border-gray-100">
+                 <div className="flex items-center gap-4">
+                   <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                      <i className="fa-solid fa-language"></i>
+                   </div>
+                   <span className="font-bold text-sm text-gray-700">{lang === Language.HINDI ? 'भाषा (Hindi)' : 'Language (English)'}</span>
                  </div>
                  <i className="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
                </button>
+               <div className="w-full p-5 flex justify-between items-center hover:bg-rose-50 transition group">
+                 <div className="flex items-center gap-4 text-rose-500">
+                   <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-100">
+                      <i className="fa-solid fa-right-from-bracket"></i>
+                   </div>
+                   <span className="font-bold text-sm">Logout</span>
+                 </div>
+               </div>
              </div>
           </div>
         );

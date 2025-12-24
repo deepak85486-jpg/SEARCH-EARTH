@@ -119,15 +119,15 @@ export const geminiService = {
   // Daily Current Affairs with Search Grounding
   async getDailyCurrentAffairs(lang: Language) {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    // Using gemini-3-pro-image-preview for real-time search tool usage as per guidelines
-    const model = 'gemini-3-pro-image-preview';
+    // Use gemini-3-flash-preview to avoid mandatory key selection dialogs
+    const model = 'gemini-3-flash-preview';
     const today = new Date().toLocaleDateString('en-GB');
     
     const response = await ai.models.generateContent({
       model,
-      contents: `Provide the top 10 most important current affairs updates for today (${today}) specifically relevant for Indian competitive exams (UPSC, SSC, Banking, BPSC). 
-      Include news on National events, International relations, Economy, and Science & Tech.
-      Output must be in JSON format. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
+      contents: `Search for the most important news for today (${today}) relevant to Indian competitive exams (UPSC, SSC, BPSC). 
+      Provide a list of top 10 current affairs updates in JSON format. 
+      Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
@@ -138,7 +138,7 @@ export const geminiService = {
             properties: {
               title: { type: Type.STRING },
               summary: { type: Type.STRING },
-              category: { type: Type.STRING, description: "National, International, Economy, Sports, etc." },
+              category: { type: Type.STRING },
               date: { type: Type.STRING }
             },
             required: ["title", "summary", "category", "date"]
@@ -147,6 +147,14 @@ export const geminiService = {
       }
     });
 
-    return JSON.parse(response.text || '[]');
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks
+      ?.map((chunk: any) => chunk.web)
+      ?.filter((web: any) => web && web.uri)
+      || [];
+
+    return {
+      news: JSON.parse(response.text || '[]'),
+      sources: sources as { title: string, uri: string }[]
+    };
   }
 };
