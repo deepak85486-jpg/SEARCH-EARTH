@@ -1,0 +1,8 @@
+{
+  "name": "Copy of SEARCH EARTH - AI EdTech",
+  "description": "A comprehensive AI-powered educational platform for competitive exams and K-12 students, featuring AI tutors, photo-based question solvers, and personalized study planners.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
