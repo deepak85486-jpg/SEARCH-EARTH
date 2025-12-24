@@ -94,6 +94,7 @@ const CurrentAffairsScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   const [data, setData] = useState<CurrentAffair[]>([]);
   const [sources, setSources] = useState<{ title: string; uri: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -101,14 +102,14 @@ const CurrentAffairsScreen: React.FC<{ lang: Language }> = ({ lang }) => {
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await geminiService.getDailyCurrentAffairs(lang);
       setData(res.news);
       setSources(res.sources);
     } catch (e: any) {
       console.error(e);
-      // Fallback message if something fails
-      alert(lang === Language.HINDI ? "डेटा लोड करने में विफल।" : "Failed to load data.");
+      setError(e.message || "Failed to fetch current affairs.");
     } finally {
       setLoading(false);
     }
@@ -137,18 +138,19 @@ const CurrentAffairsScreen: React.FC<{ lang: Language }> = ({ lang }) => {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl text-center space-y-4">
+          <i className="fa-solid fa-circle-exclamation text-rose-500 text-3xl"></i>
+          <p className="text-rose-700 font-medium text-sm">{lang === Language.HINDI ? "डेटा लोड करने में समस्या आई। कृपया अपना इंटरनेट और API Key जांचें।" : "Error loading data. Please check your internet and API Key configuration."}</p>
+          <p className="text-rose-400 text-[10px] italic">{error}</p>
+          <button onClick={fetchData} className="bg-rose-500 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-200">Retry</button>
+        </div>
       ) : (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-          {data.length === 0 && !loading && (
-            <div className="text-center py-10 bg-white rounded-3xl border border-dashed text-gray-400">
-               <i className="fa-solid fa-face-frown text-3xl mb-2"></i>
-               <p>{lang === Language.HINDI ? "कोई डेटा नहीं मिला।" : "No data found."}</p>
-            </div>
-          )}
           {data.map((item, idx) => (
             <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-orange-200 transition-all hover:shadow-md">
               <span className="text-[9px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full mb-2 inline-block">
-                {item.category}
+                {item.category || 'News'}
               </span>
               <h3 className="font-bold text-gray-800 text-base leading-tight mb-2">{item.title}</h3>
               <p className="text-xs text-gray-500 leading-relaxed font-medium">{item.summary}</p>
@@ -186,6 +188,7 @@ const CurrentAffairsScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   );
 };
 
+// ... Rest of the components (AITeacherScreen, QuizScreen, etc.) ...
 // --- SUBJECT DETAILS SCREEN ---
 const SubjectDetailsScreen: React.FC<{ subject: Subject; lang: Language; setScreen: (s: AppScreen) => void; setTopic: (t: string) => void }> = ({ subject, lang, setScreen, setTopic }) => {
   const [content, setContent] = useState<string | null>(null);
