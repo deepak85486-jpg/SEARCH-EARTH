@@ -66,13 +66,16 @@ export const geminiService = {
     return response.text;
   },
 
-  // Quiz Generation
-  async generateQuiz(topic: string, count: number = 20, lang: Language) {
+  // Quiz Generation - Updated to handle difficulty levels
+  async generateQuiz(topic: string, count: number = 20, lang: Language, difficulty: string = 'Medium') {
     const ai = getAI();
     const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
-      contents: `Generate a high-quality competitive exam level multiple choice quiz about "${topic}" with ${count} questions. Provide JSON format. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
+      contents: `Generate a high-quality competitive exam level multiple choice quiz about "${topic}" with ${count} questions. 
+      Difficulty Level: ${difficulty}. 
+      Ensure the complexity, terminology, and depth of questions strictly match the "${difficulty}" level.
+      Provide JSON format. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -93,13 +96,16 @@ export const geminiService = {
     return safeParseJson(response.text || '[]');
   },
 
-  // Study Planner
+  // Study Planner - Prompt refined for hourly slots
   async generateStudyPlan(exam: string, days: number, lang: Language) {
     const ai = getAI();
     const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
-      contents: `Create a very detailed ${days}-day study schedule for the ${exam} exam. Format as JSON. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
+      contents: `Create an extremely detailed ${days}-day study schedule for the ${exam} exam. 
+      CRITICAL REQUIREMENT: For each day, provide an hourly breakdown using specific time slots (e.g., "06:00 AM - 07:30 AM"). 
+      Each 'activity' must be a detailed description of what to study, which sub-topics to cover, and which practice tasks to complete. 
+      Do NOT just list general topics. Language: ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -118,8 +124,8 @@ export const geminiService = {
                     items: {
                       type: Type.OBJECT,
                       properties: {
-                        time: { type: Type.STRING },
-                        activity: { type: Type.STRING }
+                        time: { type: Type.STRING, description: "Specific time slot like 09:00 AM - 10:30 AM" },
+                        activity: { type: Type.STRING, description: "Detailed study instructions and sub-topics" }
                       }
                     }
                   }
@@ -136,7 +142,6 @@ export const geminiService = {
   // Daily Current Affairs
   async getDailyCurrentAffairs(lang: Language) {
     const ai = getAI();
-    // Using gemini-3-flash-preview for faster and more reliable search grounding
     const model = 'gemini-3-flash-preview';
     const today = new Date().toLocaleDateString('en-GB');
     
@@ -152,13 +157,11 @@ export const geminiService = {
 
     const textOutput = response.text || "";
     
-    // Extract sources
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks
       ?.map((chunk: any) => chunk.web)
       ?.filter((web: any) => web && web.uri)
       || [];
 
-    // Robust parsing for CurrentAffair objects
     const newsItems: CurrentAffair[] = [];
     const sections = textOutput.split(/\n\d+\.\s+/);
     

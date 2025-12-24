@@ -523,6 +523,7 @@ const PhotoSearchScreen: React.FC<{ lang: Language }> = ({ lang }) => {
 
 const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang, initialTopic = '' }) => {
   const [topic, setTopic] = useState(initialTopic);
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
   const [quiz, setQuiz] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -569,7 +570,7 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
     setCurrentIndex(0);
     setScore(0);
     try {
-      const data = await geminiService.generateQuiz(topic, 20, lang);
+      const data = await geminiService.generateQuiz(topic, 20, lang, difficulty);
       setQuiz(data);
     } catch (e: any) {
       setError(e.message || "Error generating quiz");
@@ -589,6 +590,8 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
     }
   };
 
+  const difficultyLevels: ('Easy' | 'Medium' | 'Hard')[] = ['Easy', 'Medium', 'Hard'];
+
   return (
     <div className="h-full flex flex-col gap-4">
       {quiz.length === 0 ? (
@@ -600,12 +603,38 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
             <h3 className="text-2xl font-black text-gray-800">{lang === Language.HINDI ? 'नया क्विज़ (20 सवाल)' : 'New Quiz (20 Questions)'}</h3>
             <p className="text-gray-400 text-xs mt-2 px-8 font-medium">{lang === Language.HINDI ? 'प्रत्येक सवाल के लिए 20 सेकंड मिलेंगे।' : 'Each question has a 20-second timer.'}</p>
           </div>
-          <input 
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            className="w-full p-4 border border-gray-100 rounded-2xl outline-none focus:border-blue-500 bg-gray-50 text-sm font-bold transition shadow-inner"
-            placeholder={lang === Language.HINDI ? 'विषय लिखें...' : 'Type topic...'}
-          />
+          
+          <div className="space-y-4 text-left">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === Language.HINDI ? 'कठिनाई का स्तर' : 'Difficulty Level'}</label>
+              <div className="flex bg-gray-100 p-1 rounded-2xl gap-1">
+                {difficultyLevels.map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setDifficulty(level)}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all ${
+                      difficulty === level 
+                        ? 'bg-white text-blue-600 shadow-sm scale-100' 
+                        : 'text-gray-400 scale-95 hover:text-gray-600'
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === Language.HINDI ? 'विषय' : 'Topic'}</label>
+              <input 
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                className="w-full p-4 border border-gray-100 rounded-2xl outline-none focus:border-blue-500 bg-gray-50 text-sm font-bold transition shadow-inner"
+                placeholder={lang === Language.HINDI ? 'विषय लिखें...' : 'Type topic...'}
+              />
+            </div>
+          </div>
+
           {error && <p className="text-rose-500 text-[10px] italic">{error}</p>}
           <button 
             onClick={startQuiz}
@@ -623,7 +652,10 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
           </div>
           <div>
             <h2 className="text-3xl font-black text-gray-800">{lang === Language.HINDI ? 'आपका परिणाम' : 'Final Result'}</h2>
-            <p className="text-5xl font-black text-blue-600 mt-2">{score} <span className="text-gray-300 text-2xl font-bold">/ {quiz.length}</span></p>
+            <div className="flex flex-col gap-1 mt-2">
+              <p className="text-5xl font-black text-blue-600">{score} <span className="text-gray-300 text-2xl font-bold">/ {quiz.length}</span></p>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{difficulty} Level</span>
+            </div>
           </div>
           <button onClick={() => setQuiz([])} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-lg">
             {lang === Language.HINDI ? 'दोबारा कोशिश करें' : 'Try Again'}
@@ -633,7 +665,7 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
         <div className="flex-1 flex flex-col gap-4 animate-in fade-in duration-300">
           <div className="flex justify-between items-center px-2">
             <div className="flex flex-col">
-               <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Question {currentIndex + 1} of {quiz.length}</span>
+               <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Question {currentIndex + 1} of {quiz.length} ({difficulty})</span>
                <div className="h-2 w-40 bg-gray-100 rounded-full overflow-hidden mt-1.5 shadow-inner">
                  <div className="h-full bg-blue-600 transition-all duration-300 rounded-full" style={{ width: `${((currentIndex + 1) / quiz.length) * 100}%` }}></div>
                </div>

@@ -31,7 +31,13 @@ export interface Message {
 export interface StudyPlan {
   exam: string;
   duration: string;
-  schedule: { day: string; topics: string[] }[];
+  schedule: { 
+    day: string; 
+    slots: { 
+      time: string; 
+      activity: string; 
+    }[] 
+  }[];
 }
 
 export interface CurrentAffair {
