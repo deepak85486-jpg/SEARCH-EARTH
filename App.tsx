@@ -141,9 +141,9 @@ const CurrentAffairsScreen: React.FC<{ lang: Language }> = ({ lang }) => {
       ) : error ? (
         <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl text-center space-y-4">
           <i className="fa-solid fa-circle-exclamation text-rose-500 text-3xl"></i>
-          <p className="text-rose-700 font-medium text-sm">{lang === Language.HINDI ? "डेटा लोड करने में समस्या आई। कृपया अपना इंटरनेट और API Key जांचें।" : "Error loading data. Please check your internet and API Key configuration."}</p>
-          <p className="text-rose-400 text-[10px] italic">{error}</p>
-          <button onClick={fetchData} className="bg-rose-500 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-200">Retry</button>
+          <p className="text-rose-700 font-medium text-sm">{lang === Language.HINDI ? "डेटा लोड करने में समस्या आई।" : "Error loading data."}</p>
+          <p className="text-rose-400 text-[10px] italic break-words">{error}</p>
+          <button onClick={fetchData} className="bg-rose-500 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg">Retry</button>
         </div>
       ) : (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -188,8 +188,6 @@ const CurrentAffairsScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   );
 };
 
-// ... Rest of the components (AITeacherScreen, QuizScreen, etc.) ...
-// --- SUBJECT DETAILS SCREEN ---
 const SubjectDetailsScreen: React.FC<{ subject: Subject; lang: Language; setScreen: (s: AppScreen) => void; setTopic: (t: string) => void }> = ({ subject, lang, setScreen, setTopic }) => {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -262,7 +260,6 @@ const SubjectDetailsScreen: React.FC<{ subject: Subject; lang: Language; setScre
   );
 };
 
-// --- AI TEACHER SCREEN ---
 const AITeacherScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: lang === Language.HINDI ? 'नमस्ते! मैं सर्च अर्थ AI गुरु हूँ। आज आप क्या सीखना चाहते हैं?' : 'Namaste! I am Search Earth AI Guru. What would you like to learn today?' }
@@ -287,8 +284,8 @@ const AITeacherScreen: React.FC<{ lang: Language }> = ({ lang }) => {
     try {
       const response = await geminiService.chatWithTeacher(input, messages, lang);
       setMessages(prev => [...prev, { role: 'assistant', content: response || 'No response.' }]);
-    } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }]);
+    } catch (e: any) {
+      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${e.message || "Connection error."}` }]);
     } finally {
       setLoading(false);
     }
@@ -338,21 +335,22 @@ const AITeacherScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   );
 };
 
-// --- STUDY PLANNER SCREEN ---
 const StudyPlannerScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   const [exam, setExam] = useState('');
   const [days, setDays] = useState('7');
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const generatePlan = async () => {
     if (!exam) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await geminiService.generateStudyPlan(exam, parseInt(days), lang);
       setPlan(data);
-    } catch (e) {
-      alert("Error generating plan");
+    } catch (e: any) {
+      setError(e.message || "Error generating plan");
     } finally {
       setLoading(false);
     }
@@ -391,6 +389,7 @@ const StudyPlannerScreen: React.FC<{ lang: Language }> = ({ lang }) => {
               />
             </div>
           </div>
+          {error && <p className="text-rose-500 text-[10px] text-center italic">{error}</p>}
           <button 
             onClick={generatePlan}
             disabled={loading || !exam}
@@ -411,14 +410,14 @@ const StudyPlannerScreen: React.FC<{ lang: Language }> = ({ lang }) => {
               <i className="fa-solid fa-rotate-left"></i>
             </button>
           </div>
-          {plan.schedule.map((day: any, i: number) => (
+          {plan.schedule?.map((day: any, i: number) => (
             <div key={i} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="bg-gray-50/80 px-5 py-3 border-b border-gray-100 flex justify-between items-center">
                  <h4 className="font-black text-gray-700 text-[10px] uppercase tracking-[0.2em]">{day.day}</h4>
                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
               </div>
               <div className="p-0">
-                {day.slots.map((slot: any, j: number) => (
+                {day.slots?.map((slot: any, j: number) => (
                   <div key={j} className="flex border-b last:border-b-0 group hover:bg-gray-50 transition-colors">
                     <div className="w-28 bg-blue-50/30 p-4 flex flex-col items-center justify-center border-r border-gray-100 text-[9px] font-black text-blue-800 text-center uppercase tracking-tight">
                        {slot.time}
@@ -437,11 +436,11 @@ const StudyPlannerScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   );
 };
 
-// --- PHOTO SEARCH SCREEN ---
 const PhotoSearchScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -459,11 +458,12 @@ const PhotoSearchScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   const solveQuestion = async (base64: string) => {
     setLoading(true);
     setResult(null);
+    setError(null);
     try {
       const res = await geminiService.solvePhotoQuestion(base64, lang);
       setResult(res || 'Unable to identify the question.');
-    } catch (e) {
-      setResult('Error processing image.');
+    } catch (e: any) {
+      setError(e.message || 'Error processing image.');
     } finally {
       setLoading(false);
     }
@@ -492,7 +492,7 @@ const PhotoSearchScreen: React.FC<{ lang: Language }> = ({ lang }) => {
           <div className="relative rounded-3xl overflow-hidden border border-gray-100 shadow-lg shrink-0 h-56">
             <img src={image} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-            <button onClick={() => {setImage(null); setResult(null);}} className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white w-10 h-10 rounded-xl flex items-center justify-center border border-white/30 active:scale-90 transition">
+            <button onClick={() => {setImage(null); setResult(null); setError(null);}} className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white w-10 h-10 rounded-xl flex items-center justify-center border border-white/30 active:scale-90 transition">
               <i className="fa-solid fa-times"></i>
             </button>
           </div>
@@ -506,16 +506,14 @@ const PhotoSearchScreen: React.FC<{ lang: Language }> = ({ lang }) => {
                 <div className="h-4 bg-gray-50 rounded animate-pulse"></div>
                 <div className="h-4 bg-gray-50 rounded animate-pulse w-3/4"></div>
                 <div className="h-4 bg-gray-50 rounded animate-pulse w-5/6"></div>
-                <div className="h-4 bg-gray-50 rounded animate-pulse w-4/6"></div>
               </div>
+            ) : error ? (
+              <p className="text-rose-500 text-xs italic">{error}</p>
             ) : (
               <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-medium prose prose-sm max-w-none prose-strong:text-blue-800">
                 {result}
               </div>
             )}
-            <div className="absolute -bottom-2 -right-2 opacity-5 text-8xl">
-               <i className="fa-solid fa-robot"></i>
-            </div>
           </div>
         </div>
       )}
@@ -523,7 +521,6 @@ const PhotoSearchScreen: React.FC<{ lang: Language }> = ({ lang }) => {
   );
 };
 
-// --- QUIZ SCREEN ---
 const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang, initialTopic = '' }) => {
   const [topic, setTopic] = useState(initialTopic);
   const [quiz, setQuiz] = useState<any[]>([]);
@@ -531,6 +528,7 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [timeLeft, setTimeLeft] = useState(20);
   const timerRef = useRef<any>(null);
@@ -565,6 +563,7 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
   const startQuiz = async () => {
     if (!topic) return;
     setLoading(true);
+    setError(null);
     setQuiz([]);
     setShowResult(false);
     setCurrentIndex(0);
@@ -572,8 +571,8 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
     try {
       const data = await geminiService.generateQuiz(topic, 20, lang);
       setQuiz(data);
-    } catch (e) {
-      alert("Error generating quiz");
+    } catch (e: any) {
+      setError(e.message || "Error generating quiz");
     } finally {
       setLoading(false);
     }
@@ -599,18 +598,19 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
           </div>
           <div>
             <h3 className="text-2xl font-black text-gray-800">{lang === Language.HINDI ? 'नया क्विज़ (20 सवाल)' : 'New Quiz (20 Questions)'}</h3>
-            <p className="text-gray-400 text-xs mt-2 px-8 font-medium">{lang === Language.HINDI ? 'प्रत्येक सवाल के लिए 20 सेकंड मिलेंगे। क्या आप तैयार हैं?' : 'Each question has a 20-second timer. Are you ready?'}</p>
+            <p className="text-gray-400 text-xs mt-2 px-8 font-medium">{lang === Language.HINDI ? 'प्रत्येक सवाल के लिए 20 सेकंड मिलेंगे।' : 'Each question has a 20-second timer.'}</p>
           </div>
           <input 
             value={topic}
             onChange={e => setTopic(e.target.value)}
             className="w-full p-4 border border-gray-100 rounded-2xl outline-none focus:border-blue-500 bg-gray-50 text-sm font-bold transition shadow-inner"
-            placeholder={lang === Language.HINDI ? 'विषय लिखें (उदा: भारत का भूगोल)...' : 'Type topic...'}
+            placeholder={lang === Language.HINDI ? 'विषय लिखें...' : 'Type topic...'}
           />
+          {error && <p className="text-rose-500 text-[10px] italic">{error}</p>}
           <button 
             onClick={startQuiz}
             disabled={loading || !topic}
-            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95 transition disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition disabled:opacity-50"
           >
             {loading ? <i className="fa-solid fa-spinner animate-spin"></i> : <i className="fa-solid fa-play"></i>}
             {lang === Language.HINDI ? 'क्विज़ शुरू करें' : 'Start Quiz'}
@@ -625,10 +625,7 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
             <h2 className="text-3xl font-black text-gray-800">{lang === Language.HINDI ? 'आपका परिणाम' : 'Final Result'}</h2>
             <p className="text-5xl font-black text-blue-600 mt-2">{score} <span className="text-gray-300 text-2xl font-bold">/ {quiz.length}</span></p>
           </div>
-          <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
-            <p className="text-sm font-bold text-blue-800">{score > 15 ? 'Incredible! You are a genius!' : 'Great effort! Practice more to master it.'}</p>
-          </div>
-          <button onClick={() => setQuiz([])} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition">
+          <button onClick={() => setQuiz([])} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-lg">
             {lang === Language.HINDI ? 'दोबारा कोशिश करें' : 'Try Again'}
           </button>
         </div>
@@ -641,27 +638,24 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
                  <div className="h-full bg-blue-600 transition-all duration-300 rounded-full" style={{ width: `${((currentIndex + 1) / quiz.length) * 100}%` }}></div>
                </div>
             </div>
-            <div className={`w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center font-black text-sm transition-all shadow-sm ${timeLeft < 5 ? 'border-rose-500 text-rose-500 bg-rose-50 animate-pulse scale-110' : 'border-blue-600 text-blue-600 bg-blue-50'}`}>
+            <div className={`w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center font-black text-sm transition-all shadow-sm ${timeLeft < 5 ? 'border-rose-500 text-rose-500 bg-rose-50 animate-pulse' : 'border-blue-600 text-blue-600 bg-blue-50'}`}>
                <span className="text-[9px] leading-none uppercase tracking-tighter">Sec</span>
                <span className="text-xl leading-none">{timeLeft}</span>
             </div>
           </div>
           <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-xl relative overflow-hidden flex-1 flex flex-col">
-            <h3 className="text-lg font-black text-gray-800 mb-8 leading-relaxed relative z-10">{quiz[currentIndex].question}</h3>
-            <div className="space-y-3 relative z-10">
-              {quiz[currentIndex].options.map((opt: string, i: number) => (
+            <h3 className="text-lg font-black text-gray-800 mb-8 leading-relaxed z-10">{quiz[currentIndex].question}</h3>
+            <div className="space-y-3 z-10">
+              {quiz[currentIndex].options?.map((opt: string, i: number) => (
                 <button 
                   key={i} 
                   onClick={() => handleNextQuestion(i === quiz[currentIndex].correctAnswer)}
-                  className="w-full text-left p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:border-blue-500 hover:bg-blue-50 transition-all font-bold text-gray-700 text-sm active:scale-[0.98] group flex items-center gap-3 shadow-sm"
+                  className="w-full text-left p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:border-blue-500 hover:bg-blue-50 transition-all font-bold text-gray-700 text-sm flex items-center gap-3"
                 >
-                  <span className="w-8 h-8 bg-white border border-gray-100 rounded-xl text-center text-xs font-black leading-8 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">{String.fromCharCode(65 + i)}</span>
+                  <span className="w-8 h-8 bg-white border border-gray-100 rounded-xl text-center text-xs font-black leading-8 text-blue-600">{String.fromCharCode(65 + i)}</span>
                   <span className="flex-1">{opt}</span>
                 </button>
               ))}
-            </div>
-            <div className="absolute -bottom-6 -left-6 text-9xl opacity-[0.03] rotate-12">
-               <i className="fa-solid fa-clipboard-question"></i>
             </div>
           </div>
         </div>
@@ -670,7 +664,6 @@ const QuizScreen: React.FC<{ lang: Language; initialTopic?: string }> = ({ lang,
   );
 };
 
-// --- MAIN APP ---
 const App: React.FC = () => {
   const [activeScreen, setActiveScreen] = useState<AppScreen>(AppScreen.HOME);
   const [lang, setLang] = useState<Language>(Language.HINDI);
@@ -725,7 +718,7 @@ const App: React.FC = () => {
                <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-blue-600 to-indigo-700"></div>
                <div className="relative z-10">
                  <div className="w-28 h-28 bg-white rounded-[2.5rem] mx-auto mb-4 p-1.5 shadow-2xl">
-                   <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh" className="w-full h-full rounded-[2.2rem] bg-gray-50" />
+                   <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh`} className="w-full h-full rounded-[2.2rem] bg-gray-50" />
                  </div>
                  <h3 className="text-2xl font-black text-gray-800">Rajesh Kumar</h3>
                  <p className="text-blue-500 text-xs font-bold uppercase tracking-widest mt-1">UPSC Aspirant | Bihar</p>
@@ -741,14 +734,6 @@ const App: React.FC = () => {
                  </div>
                  <i className="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
                </button>
-               <div className="w-full p-5 flex justify-between items-center hover:bg-rose-50 transition group">
-                 <div className="flex items-center gap-4 text-rose-500">
-                   <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-100">
-                      <i className="fa-solid fa-right-from-bracket"></i>
-                   </div>
-                   <span className="font-bold text-sm">Logout</span>
-                 </div>
-               </div>
              </div>
           </div>
         );

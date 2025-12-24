@@ -2,10 +2,30 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Language, Message, CurrentAffair } from '../types';
 
+// Helper to clean AI response and parse JSON safely
+const safeParseJson = (text: string) => {
+  try {
+    // Remove markdown code blocks if present
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
+  } catch (e) {
+    console.error("JSON Parsing Error:", e, "Original text:", text);
+    throw new Error("Failed to parse AI response. Please try again.");
+  }
+};
+
+const getAI = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please set API_KEY in your environment variables.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
 export const geminiService = {
   // AI Teacher
   async chatWithTeacher(prompt: string, history: Message[], lang: Language) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAI();
     const model = 'gemini-3-flash-preview';
     
     const formattedHistory = history.map(m => ({
@@ -32,7 +52,7 @@ export const geminiService = {
 
   // Photo Search
   async solvePhotoQuestion(base64Image: string, lang: Language) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAI();
     const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
@@ -48,7 +68,7 @@ export const geminiService = {
 
   // Quiz Generation
   async generateQuiz(topic: string, count: number = 20, lang: Language) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAI();
     const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
@@ -70,12 +90,12 @@ export const geminiService = {
         }
       }
     });
-    return JSON.parse(response.text || '[]');
+    return safeParseJson(response.text || '[]');
   },
 
   // Study Planner
   async generateStudyPlan(exam: string, days: number, lang: Language) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAI();
     const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
@@ -110,24 +130,20 @@ export const geminiService = {
         }
       }
     });
-    return JSON.parse(response.text || '{}');
+    return safeParseJson(response.text || '{}');
   },
 
-  // Daily Current Affairs - Fixed for Grounding Search
+  // Daily Current Affairs
   async getDailyCurrentAffairs(lang: Language) {
-    // Creating fresh instance as per mandatory key selection guidelines
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    // Use gemini-3-pro-image-preview for high-quality real-time info using googleSearch tool
-    const model = 'gemini-3-pro-image-preview';
+    const ai = getAI();
+    // Using gemini-3-flash-preview for faster and more reliable search grounding
+    const model = 'gemini-3-flash-preview';
     const today = new Date().toLocaleDateString('en-GB');
     
-    // We don't use responseMimeType: "application/json" with search grounding 
-    // because grounding chunks often conflict with strict JSON formatting.
-    // Instead, we get text and parse or present it.
     const response = await ai.models.generateContent({
       model,
-      contents: `Perform a search and provide the top 10 most important current affairs updates for today (${today}) relevant to Indian competitive exams (UPSC, SSC, BPSC, Banking). 
-      Format your response as a numbered list. For each item, include a Category, a Title, and a brief 2-sentence Summary. 
+      contents: `Search for the top 10 most important current affairs updates for today (${today}) relevant to Indian competitive exams (UPSC, SSC, BPSC, Banking). 
+      Format your response as a numbered list. For each item, include a Category, a Title, and a brief Summary. 
       Use ${lang === Language.HINDI ? 'Hindi' : 'English'}.`,
       config: {
         tools: [{ googleSearch: {} }],
@@ -142,21 +158,21 @@ export const geminiService = {
       ?.filter((web: any) => web && web.uri)
       || [];
 
-    // Simple parser for the text response into CurrentAffair objects
-    // Since search grounding can be unpredictable, we'll return the parsed list
+    // Robust parsing for CurrentAffair objects
     const newsItems: CurrentAffair[] = [];
-    const lines = textOutput.split('\n').filter(l => l.trim().length > 5);
+    const sections = textOutput.split(/\n\d+\.\s+/);
     
-    let currentItem: Partial<CurrentAffair> = {};
-    lines.forEach(line => {
-      if (/^\d+\./.test(line)) {
-        if (currentItem.title) newsItems.push(currentItem as CurrentAffair);
-        currentItem = { title: line.replace(/^\d+\.\s*/, ''), date: today, category: 'General' };
-      } else if (currentItem.title && !currentItem.summary) {
-        currentItem.summary = line;
+    sections.forEach(section => {
+      const lines = section.trim().split('\n');
+      if (lines.length >= 1 && lines[0].length > 5) {
+        newsItems.push({
+          title: lines[0].replace(/Title:?\s*/i, '').trim(),
+          summary: lines.slice(1).join(' ').replace(/Summary:?\s*/i, '').trim(),
+          category: 'General',
+          date: today
+        });
       }
     });
-    if (currentItem.title) newsItems.push(currentItem as CurrentAffair);
 
     return {
       news: newsItems.length > 0 ? newsItems : [{ title: "Daily Updates", summary: textOutput, category: "Live Feed", date: today }],
